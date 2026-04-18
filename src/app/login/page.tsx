@@ -17,7 +17,6 @@ export default function LoginPage() {
     if (message.toLowerCase().includes("invalid login")) {
       return "Invalid email or password.";
     }
-
     return message;
   }
 
@@ -31,7 +30,6 @@ export default function LoginPage() {
         router.replace("/dashboard");
       }
     }
-
     redirectAuthenticatedUser();
   }, [router, supabase]);
 
@@ -56,87 +54,75 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-100 px-6 py-10 text-black">
-      <div className="w-full max-w-md rounded-xl bg-white p-8 shadow-md">
-        <div className="mb-8 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-black text-lg font-semibold text-white">
+    <main className="min-h-screen flex items-center justify-center px-6 py-10">
+      <div className="glass w-full max-w-md p-10 space-y-7 rounded-2xl">
+
+        <div className="text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 border border-white/20 text-xl font-semibold shadow-md">
             S
           </div>
-          <p className="mt-5 text-sm font-medium text-gray-500">StudyIntel</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-black">
+          <p className="mt-4 text-sm text-gray-400">StudyIntel</p>
+          <h1 className="mt-2 text-3xl sm:text-4xl font-semibold tracking-tight">
             Welcome back
           </h1>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-2 text-sm text-gray-400">
             Log in to continue to your dashboard.
           </p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-5">
+        <form onSubmit={handleLogin} className="space-y-6">
+
           <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-black"
-            >
-              Email
-            </label>
+            <label className="text-sm text-gray-300">Email</label>
             <input
-              id="email"
-              name="email"
               type="email"
-              autoComplete="email"
               required
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-3 py-3 text-sm text-black outline-none transition placeholder:text-gray-400 focus:border-black focus:ring-2 focus:ring-black/10"
+              onChange={(e) => setEmail(e.target.value)}
+              className="input w-full mt-2 px-4 py-2"
               placeholder="you@example.com"
             />
           </div>
 
           <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-black"
-            >
-              Password
-            </label>
+            <label className="text-sm text-gray-300">Password</label>
             <input
-              id="password"
-              name="password"
               type="password"
-              autoComplete="current-password"
               required
               minLength={6}
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-3 py-3 text-sm text-black outline-none transition placeholder:text-gray-400 focus:border-black focus:ring-2 focus:ring-black/10"
+              onChange={(e) => setPassword(e.target.value)}
+              className="input w-full mt-2 px-4 py-2"
               placeholder="Enter your password"
             />
           </div>
 
-          {error ? (
-            <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
+          {error && (
+            <p className="text-sm text-red-400 border border-red-500/30 bg-red-500/10 p-3 rounded-lg">
               {error}
             </p>
-          ) : null}
+          )}
 
           <button
             type="submit"
             disabled={isLoading}
-            className="flex w-full items-center justify-center rounded-lg bg-black px-4 py-3 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-70"
+            className="btn btn-primary w-full py-2 text-sm tracking-wide"
           >
             {isLoading ? "Logging in..." : "Log in"}
           </button>
+
         </form>
 
-        <p className="mt-8 text-center text-sm text-gray-600">
+        <p className="text-center text-sm text-gray-400 mt-2">
           No account?{" "}
           <Link
             href="/register"
-            className="font-medium text-black underline-offset-4 hover:underline"
+            className="text-white underline hover:opacity-80"
           >
             Create one
           </Link>
         </p>
+
       </div>
     </main>
   );

@@ -2,37 +2,41 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-100 px-6 py-10 text-black">
-      <div className="w-full max-w-3xl rounded-xl bg-white p-8 text-center shadow-md sm:p-12">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-black text-xl font-semibold text-white">
+    <main className="min-h-screen flex items-center justify-center px-6 py-10">
+      <div className="glass w-full max-w-4xl p-12 text-center space-y-8 rounded-2xl">
+        
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 border border-white/20 text-2xl font-semibold shadow-lg">
           S
         </div>
 
-        <div className="mt-8 flex flex-col items-center gap-4">
-          <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-black">
-            Welcome to StudyIntel
+        <div className="flex flex-col items-center gap-4">
+          <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight leading-tight">
+            Welcome to StudyIntel 🚀
           </h1>
 
-          <p className="max-w-xl text-base leading-7 text-gray-600">
+          <p className="text-gray-400 max-w-2xl text-base sm:text-lg">
             Smart study tracker with AI, leaderboard, and insights.
           </p>
         </div>
 
-        <div className="mt-10 flex w-full flex-col gap-3 sm:flex-row sm:justify-center">
-          <Link
-            href="/login"
-            className="rounded-lg bg-black px-6 py-3 text-sm font-medium text-white transition hover:bg-gray-800"
-          >
-            Login
+        <div className="flex flex-col gap-3 sm:flex-row sm:justify-center mt-8">
+          <Link href="/login">
+            <button className="btn px-6 py-2 w-full sm:w-auto">
+              Login
+            </button>
           </Link>
 
-          <Link
-            href="/register"
-            className="rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-black transition hover:bg-gray-50"
-          >
-            Register
+          <Link href="/register">
+            <button className="btn btn-primary px-6 py-2 w-full sm:w-auto">
+              Register
+            </button>
           </Link>
         </div>
+
+        <p className="text-xs text-gray-500 mt-2">
+          Built for focused students 🚀
+        </p>
+
       </div>
     </main>
   );
