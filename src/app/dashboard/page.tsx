@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 
 type Task = {
@@ -22,6 +23,10 @@ type Profile = {
   completed_tasks_count?: number;
 };
 
+function panelClass() {
+  return "rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl md:p-8";
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -32,10 +37,13 @@ export default function DashboardPage() {
   const [leaderboard, setLeaderboard] = useState<Profile[]>([]);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [loading, setLoading] = useState(true);
-
-  // AI Task Planner State
   const [aiTopic, setAiTopic] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const openTasks = useMemo(
+    () => tasks.filter((t) => !t.is_completed).length,
+    [tasks],
+  );
 
   useEffect(() => {
     async function loadUser() {
@@ -55,7 +63,9 @@ export default function DashboardPage() {
   async function fetchProfile(currentUserId: string) {
     const { data, error } = await supabase
       .from("profiles")
-      .select("username, role, streak, last_task_completed_at, school, completed_tasks_count")
+      .select(
+        "username, role, streak, last_task_completed_at, school, completed_tasks_count",
+      )
       .eq("id", currentUserId)
       .single();
 
@@ -74,7 +84,6 @@ export default function DashboardPage() {
         lastCompleted !== yesterdayStr &&
         currentStreak > 0
       ) {
-        // Streak broken
         currentStreak = 0;
         await supabase
           .from("profiles")
@@ -84,7 +93,6 @@ export default function DashboardPage() {
 
       setProfile({ ...data, streak: currentStreak });
 
-      // Fetch leaderboard
       if (data.school) {
         fetchLeaderboard(data.school);
       }
@@ -155,10 +163,9 @@ export default function DashboardPage() {
 
     if (!error && data) {
       setTasks((prevTasks) =>
-        prevTasks.map((task) => (task.id === taskId ? data[0] : task))
+        prevTasks.map((task) => (task.id === taskId ? data[0] : task)),
       );
 
-      // Streak & Leaderboard logic
       if (profile && userId) {
         let newStreak = profile.streak || 0;
         let newLastCompleted = profile.last_task_completed_at || null;
@@ -172,7 +179,7 @@ export default function DashboardPage() {
           const yesterdayStr = yesterday.toISOString().split("T")[0];
 
           if (profile.last_task_completed_at === todayStr) {
-            // Already incremented streak today
+            // same day
           } else if (profile.last_task_completed_at === yesterdayStr) {
             newStreak += 1;
             newLastCompleted = todayStr;
@@ -184,11 +191,14 @@ export default function DashboardPage() {
           newCompletedCount = Math.max(0, newCompletedCount - 1);
         }
 
-        const updatePayload: any = {
+        const updatePayload: Record<string, unknown> = {
           completed_tasks_count: newCompletedCount,
         };
 
-        if (newIsCompleted && newLastCompleted !== profile.last_task_completed_at) {
+        if (
+          newIsCompleted &&
+          newLastCompleted !== profile.last_task_completed_at
+        ) {
           updatePayload.streak = newStreak;
           updatePayload.last_task_completed_at = newLastCompleted;
         }
@@ -200,10 +210,10 @@ export default function DashboardPage() {
 
         if (!profileError) {
           const updatedProfile = { ...profile, ...updatePayload };
-          setProfile(updatedProfile);
+          setProfile(updatedProfile as Profile);
 
-          if (updatedProfile.school) {
-            fetchLeaderboard(updatedProfile.school);
+          if ((updatedProfile as Profile).school) {
+            fetchLeaderboard((updatedProfile as Profile).school!);
           }
         }
       }
@@ -211,25 +221,27 @@ export default function DashboardPage() {
   }
 
   async function removeTask(taskId: string) {
-    const { error } = await supabase
-      .from("tasks")
-      .delete()
-      .eq("id", taskId);
+    const { error } = await supabase.from("tasks").delete().eq("id", taskId);
 
     if (!error) {
-      const deletedTask = tasks.find(t => t.id === taskId);
+      const deletedTask = tasks.find((t) => t.id === taskId);
       setTasks((prev) => prev.filter((task) => task.id !== taskId));
 
-      // Decrease top student points if deleting a completed task
       if (deletedTask?.is_completed && profile && userId) {
-        const newCompletedCount = Math.max(0, (profile.completed_tasks_count || 0) - 1);
+        const newCompletedCount = Math.max(
+          0,
+          (profile.completed_tasks_count || 0) - 1,
+        );
         const { error: profileError } = await supabase
           .from("profiles")
           .update({ completed_tasks_count: newCompletedCount })
           .eq("id", userId);
 
         if (!profileError) {
-          const updatedProfile = { ...profile, completed_tasks_count: newCompletedCount };
+          const updatedProfile = {
+            ...profile,
+            completed_tasks_count: newCompletedCount,
+          };
           setProfile(updatedProfile);
           if (updatedProfile.school) fetchLeaderboard(updatedProfile.school);
         }
@@ -254,7 +266,7 @@ export default function DashboardPage() {
 
       const data = await res.json();
       if (data.tasks && data.tasks.length > 0) {
-        const tasksToInsert = data.tasks.map((t: any) => ({
+        const tasksToInsert = data.tasks.map((t: { title: string }) => ({
           title: t.title,
           is_completed: false,
           user_id: userId,
@@ -266,7 +278,6 @@ export default function DashboardPage() {
           .select();
 
         if (!error && insertedTasks) {
-          // Add AI tasks to the top of the list
           setTasks((prev) => [...insertedTasks, ...prev]);
           setAiTopic("");
         } else if (error) {
@@ -276,9 +287,10 @@ export default function DashboardPage() {
       } else if (data.error) {
         alert("AI API Error: " + data.error);
       }
-    } catch (error: any) {
-      alert("Error: " + error.message);
-      console.error("Failed to generate AI tasks", error);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      alert("Error: " + message);
+      console.error("Failed to generate AI tasks", err);
     } finally {
       setIsGenerating(false);
     }
@@ -286,98 +298,161 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-gray-100 px-6 py-10">
-        <p className="text-black">Loading...</p>
+      <main className="flex min-h-screen items-center justify-center px-6">
+        <div className="flex items-center gap-4">
+          <div
+            className="h-10 w-10 animate-spin rounded-full border-2 border-cyan-400/25 border-t-cyan-300"
+            aria-hidden
+          />
+          <p className="text-sm text-[color:var(--si-text-muted)]">
+            Loading workspace…
+          </p>
+        </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-gray-100 px-6 py-10 text-black">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-        <header className="flex flex-col justify-between gap-4 rounded bg-white p-6 shadow-md sm:flex-row sm:items-center">
+    <main className="dashboard-shell min-h-screen px-4 py-8 pb-24 sm:px-6 md:px-8 md:py-10">
+      <div className="container">
+        <header className="dashboard-hero mb-8 rounded-3xl border border-white/10">
           <div>
-            <p className="text-sm font-medium text-gray-500">StudyIntel</p>
-            <h1 className="mt-2 flex items-center gap-3 text-3xl font-semibold tracking-tight text-black">
-              Dashboard
+            <p className="dashboard-kicker">StudyIntel</p>
+            <div className="flex flex-wrap items-end gap-3">
+              <h1 className="dashboard-title !max-w-none">Dashboard</h1>
               {profile?.streak !== undefined && profile.streak > 0 && (
-                <span className="flex items-center gap-1 rounded bg-orange-100 px-2 py-1 text-sm font-bold text-orange-600">
-                  🔥 {profile.streak} Day Tracker
+                <span className="mb-1 inline-flex items-center gap-1.5 rounded-full border border-orange-400/35 bg-orange-500/15 px-3 py-1 text-sm font-bold text-orange-100">
+                  <span aria-hidden>🔥</span>
+                  {profile.streak} day streak
                 </span>
               )}
-            </h1>
+            </div>
+            <p className="dashboard-subtitle">
+              Signed in as{" "}
+              <span className="break-all font-medium text-white/90">
+                {user?.email}
+              </span>
+              {profile?.username ? (
+                <>
+                  {" "}
+                  · <span className="text-white/80">{profile.username}</span>
+                </>
+              ) : null}
+              {profile?.school ? (
+                <>
+                  {" "}
+                  ·{" "}
+                  <span className="text-cyan-200/80">{profile.school}</span>
+                </>
+              ) : null}
+            </p>
+            <div className="dashboard-hero-actions">
+              <Link
+                href="/"
+                className="btn btn-dark px-5 py-2.5 text-sm font-semibold !text-white"
+              >
+                Home
+              </Link>
+              <form onSubmit={handleLogout}>
+                <button
+                  type="submit"
+                  className="btn btn-secondary px-5 py-2.5 text-sm font-semibold"
+                >
+                  Log out
+                </button>
+              </form>
+            </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            {profile && (
-              <div className="text-right">
-                <p className="text-sm font-semibold text-black">
-                  {profile.username || "User"}
-                </p>
-                <p className="text-xs capitalize text-gray-500">
-                  {profile.school ? `${profile.school} • ` : ""}
-                  {profile.role || "student"}
-                </p>
-              </div>
-            )}
-            <form onSubmit={handleLogout}>
-              <button
-                type="submit"
-                className="rounded border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-gray-50"
-              >
-                Logout
-              </button>
-            </form>
+          <div className="dashboard-hero-stats">
+            <div className="dashboard-stat-card">
+              <span className="dashboard-stat-label">Streak</span>
+              <span className="dashboard-stat-value">
+                {profile?.streak ?? 0}
+              </span>
+              <span className="dashboard-stat-status text-sm text-[color:var(--si-text-muted)]">
+                Consecutive study days
+              </span>
+            </div>
+            <div className="dashboard-stat-card">
+              <span className="dashboard-stat-label">Open tasks</span>
+              <span className="dashboard-stat-value">{openTasks}</span>
+              <span className="dashboard-stat-status text-sm text-[color:var(--si-text-muted)]">
+                Still on your plate
+              </span>
+            </div>
+            <div className="dashboard-stat-card">
+              <span className="dashboard-stat-label">Completed</span>
+              <span className="dashboard-stat-value">
+                {profile?.completed_tasks_count ?? 0}
+              </span>
+              <span className="dashboard-stat-status text-sm text-[color:var(--si-text-muted)]">
+                Total finished (all time)
+              </span>
+            </div>
           </div>
         </header>
 
-        <section className="rounded bg-white p-6 shadow-md">
-          <p className="text-sm font-medium text-gray-500">Signed in as</p>
-          <p className="mt-2 break-all text-xl font-semibold text-black">
-            {user?.email}
-          </p>
-        </section>
-
-        {/* AI PLANNER SECTION */}
-        <section className="rounded bg-gradient-to-r from-blue-50 to-indigo-50 p-6 shadow-md border border-blue-100">
-          <h2 className="mb-2 text-xl font-semibold text-blue-900">✨ AI Task Planner</h2>
-          <p className="mb-4 text-sm text-blue-700">Not sure where to start? Tell AI what you want to study!</p>
-          <form onSubmit={generateAITasks} className="flex gap-2">
+        <section
+          className={`${panelClass()} mb-8 border-cyan-400/20 bg-gradient-to-br from-cyan-500/[0.12] via-transparent to-fuchsia-500/[0.08]`}
+        >
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="dashboard-section-kicker">AI</p>
+              <h2 className="font-display text-xl font-semibold text-white sm:text-2xl">
+                Task planner
+              </h2>
+              <p className="mt-2 max-w-xl text-sm text-[color:var(--si-text-muted)]">
+                Describe a topic—get a batch of concrete tasks you can run
+                today.
+              </p>
+            </div>
+          </div>
+          <form
+            onSubmit={generateAITasks}
+            className="mt-6 flex flex-col gap-3 sm:flex-row"
+          >
             <input
               type="text"
               value={aiTopic}
               onChange={(e) => setAiTopic(e.target.value)}
-              placeholder="e.g. Photosynthesis, React Hooks, World War 2..."
+              placeholder="e.g. Photosynthesis, React hooks, World War II…"
               disabled={isGenerating}
-              className="flex-1 rounded border border-blue-200 px-4 py-2 text-black focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
+              className="form-control min-h-[48px] flex-1 sm:min-w-0"
             />
             <button
               type="submit"
               disabled={!aiTopic.trim() || isGenerating}
-              className="rounded bg-blue-600 px-6 py-2 font-medium text-white transition hover:bg-blue-700 disabled:bg-blue-300 flex items-center justify-center min-w-[140px]"
+              className="btn btn-primary shrink-0 px-6 py-3 text-sm font-semibold disabled:opacity-50 sm:min-w-[148px]"
             >
-              {isGenerating ? "Generating..." : "Generate Plan"}
+              {isGenerating ? "Generating…" : "Generate plan"}
             </button>
           </form>
         </section>
 
-        <div className="flex flex-col gap-6 md:flex-row">
-          {/* TASK TRACKER SECTION */}
-          <section className="flex-1 rounded bg-white p-6 shadow-md">
-            <h2 className="mb-6 text-2xl font-semibold text-black">Tasks</h2>
+        <div className="flex flex-col gap-8 lg:flex-row">
+          <section className={`${panelClass()} flex-1`}>
+            <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="dashboard-section-kicker">Tasks</p>
+                <h2 className="dashboard-section-title font-display text-xl text-white sm:text-2xl">
+                  Your queue
+                </h2>
+              </div>
+            </div>
 
-            <form onSubmit={addTask} className="mb-6 flex gap-2">
+            <form onSubmit={addTask} className="mb-6 flex flex-col gap-3 sm:flex-row">
               <input
                 type="text"
                 value={newTaskTitle}
                 onChange={(e) => setNewTaskTitle(e.target.value)}
                 placeholder="What needs to be done?"
-                className="flex-1 rounded border border-gray-300 px-4 py-2 text-black focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="form-control min-h-[48px] flex-1"
               />
               <button
                 type="submit"
                 disabled={!newTaskTitle.trim()}
-                className="rounded bg-blue-600 px-6 py-2 font-medium text-white transition hover:bg-blue-700 disabled:bg-blue-300"
+                className="btn btn-primary shrink-0 px-6 py-3 text-sm font-semibold disabled:opacity-50"
               >
                 Add
               </button>
@@ -385,31 +460,34 @@ export default function DashboardPage() {
 
             <ul className="flex flex-col gap-3">
               {tasks.length === 0 ? (
-                <p className="text-gray-500">No tasks yet. Add one above or use the AI Planner!</p>
+                <p className="dashboard-empty-state">
+                  No tasks yet. Add one above or use the AI planner.
+                </p>
               ) : (
                 tasks.map((task) => (
                   <li
                     key={task.id}
-                    className="flex items-center gap-3 rounded border border-gray-200 bg-gray-50 p-4 transition-colors hover:bg-gray-100"
+                    className="material-row container-row flex-wrap rounded-2xl border border-white/10 bg-white/[0.04] p-4 transition-colors hover:border-cyan-400/25 hover:bg-white/[0.06]"
                   >
                     <input
                       type="checkbox"
                       checked={task.is_completed}
                       onChange={() => toggleTask(task.id, task.is_completed)}
-                      className="h-5 w-5 cursor-pointer rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="h-5 w-5 cursor-pointer rounded border-white/20 bg-white/10 accent-cyan-400"
                     />
                     <span
-                      className={`flex-1 ${
+                      className={`material-name min-w-0 flex-1 ${
                         task.is_completed
-                          ? "text-gray-400 line-through"
-                          : "text-black"
+                          ? "text-[color:var(--si-text-soft)] line-through"
+                          : "text-white"
                       }`}
                     >
                       {task.title}
                     </span>
                     <button
+                      type="button"
                       onClick={() => removeTask(task.id)}
-                      className="rounded bg-red-50 border border-red-200 px-3 py-1 text-sm font-medium text-red-600 transition hover:bg-red-100 hover:text-red-700"
+                      className="btn btn-danger btn-sm px-3 py-2 text-xs font-semibold"
                       title="Remove task"
                     >
                       Delete
@@ -420,36 +498,49 @@ export default function DashboardPage() {
             </ul>
           </section>
 
-          {/* LEADERBOARD SECTION */}
-          <section className="h-fit w-full rounded bg-white p-6 shadow-md md:w-1/3">
-            <h2 className="mb-6 text-2xl font-semibold text-black">🏆 Top Students</h2>
+          <section className={`${panelClass()} h-fit w-full lg:max-w-md`}>
+            <p className="dashboard-section-kicker">Leaderboard</p>
+            <h2 className="dashboard-section-title font-display text-xl text-white sm:text-2xl">
+              Top students
+            </h2>
             {profile?.school ? (
-              <ul className="flex flex-col gap-3">
+              <ul className="leaderboard-list mt-6">
                 {leaderboard.map((lbUser, i) => (
                   <li
-                    key={i}
-                    className="flex items-center justify-between rounded border border-gray-100 bg-gray-50 p-3"
+                    key={`${lbUser.username}-${i}`}
+                    className={`leaderboard-card ${
+                      i === 0
+                        ? "leaderboard-card-gold"
+                        : i === 1
+                          ? "leaderboard-card-silver"
+                          : i === 2
+                            ? "leaderboard-card-bronze"
+                            : ""
+                    }`}
                   >
-                    <span className="font-medium text-black">
-                      {i + 1}. {lbUser.username || "Anonymous"}
-                      {lbUser.username === profile.username && " (You)"}
+                    <span className="leaderboard-rank">{i + 1}</span>
+                    <span className="leaderboard-name">
+                      {lbUser.username || "Anonymous"}
+                      {lbUser.username === profile.username ? " (you)" : ""}
                     </span>
-                    <span className="text-sm font-bold text-blue-600">
-                      {lbUser.completed_tasks_count || 0}
-                    </span>
+                    <div className="text-right">
+                      <span className="leaderboard-minutes">
+                        {lbUser.completed_tasks_count || 0}
+                      </span>
+                      <span className="leaderboard-minutes-label">done</span>
+                    </div>
                   </li>
                 ))}
                 {leaderboard.length === 0 && (
-                  <p className="text-sm text-gray-500">
-                    No one from your school is on the leaderboard yet!
+                  <p className="text-sm text-[color:var(--si-text-muted)]">
+                    No one from your school is on the board yet. Complete a task
+                    to appear.
                   </p>
                 )}
               </ul>
             ) : (
-              <div className="rounded border border-dashed border-gray-300 p-4 text-center">
-                <p className="text-sm text-gray-500">
-                  Want to compete? Add a school to your profile to join the leaderboard!
-                </p>
+              <div className="dashboard-empty-state mt-6">
+                Add a school on your profile to join the cohort leaderboard.
               </div>
             )}
           </section>

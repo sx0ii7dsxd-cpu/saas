@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { AuthPageChrome } from "@/components/shells/AuthPageChrome";
 
 export default function RegisterPage() {
   const supabase = createClient();
@@ -57,14 +58,12 @@ export default function RegisterPage() {
       return;
     }
 
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .insert({
-        id: user.id,
-        school_id: school.id,
-        username: email.split("@")[0],
-        role: "student",
-      });
+    const { error: profileError } = await supabase.from("profiles").insert({
+      id: user.id,
+      school_id: school.id,
+      username: email.split("@")[0],
+      role: "student",
+    });
 
     if (profileError) {
       setError(profileError.message);
@@ -77,51 +76,41 @@ export default function RegisterPage() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-100 px-6 py-10 text-black">
-      <div className="w-full max-w-md rounded-xl bg-white p-8 shadow-md">
-        <div className="mb-8 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-black text-lg font-semibold text-white">
+    <AuthPageChrome alternate={{ href: "/login", label: "Sign in" }}>
+      <div className="auth-shell rounded-[var(--si-radius-lg)]">
+        <div className="text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-white/15 bg-gradient-to-br from-white/[0.12] to-white/[0.03] font-display text-lg font-semibold text-white shadow-lg">
             S
           </div>
-          <p className="mt-5 text-sm font-medium text-gray-500">StudyIntel</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-black">
+          <p className="auth-eyebrow mt-5">StudyIntel</p>
+          <h1 className="auth-title font-display text-3xl text-white sm:text-4xl">
             Create account
           </h1>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="auth-subtitle">
             Start tracking smarter study sessions today.
           </p>
         </div>
 
-        <form onSubmit={handleSignup} className="space-y-5">
-          <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-black"
-            >
-              Email
-            </label>
+        <form onSubmit={handleSignup} className="mt-8 space-y-6">
+          <div className="teacher-field">
+            <label htmlFor="register-email">Email</label>
             <input
-              id="email"
+              id="register-email"
               name="email"
               type="email"
               autoComplete="email"
               required
               value={email}
               placeholder="you@example.com"
-              className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-3 py-3 text-sm text-black outline-none transition placeholder:text-gray-400 focus:border-black focus:ring-2 focus:ring-black/10"
+              className="form-control w-full"
               onChange={(event) => setEmail(event.target.value)}
             />
           </div>
 
-          <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-black"
-            >
-              Password
-            </label>
+          <div className="teacher-field">
+            <label htmlFor="register-password">Password</label>
             <input
-              id="password"
+              id="register-password"
               name="password"
               type="password"
               autoComplete="new-password"
@@ -129,39 +118,48 @@ export default function RegisterPage() {
               minLength={6}
               value={password}
               placeholder="Create a password"
-              className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-3 py-3 text-sm text-black outline-none transition placeholder:text-gray-400 focus:border-black focus:ring-2 focus:ring-black/10"
+              className="form-control w-full"
               onChange={(event) => setPassword(event.target.value)}
             />
-            <p className="mt-2 text-xs text-gray-500">
+            <span className="text-xs text-[color:var(--si-text-soft)]">
               Use at least 6 characters.
-            </p>
+            </span>
           </div>
 
           {error ? (
-            <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
+            <p className="rounded-xl border border-red-400/35 bg-red-500/10 px-3 py-2.5 text-sm text-red-200">
               {error}
             </p>
           ) : null}
 
+          <p className="text-center text-[11px] leading-relaxed text-[color:var(--si-text-muted)] sm:text-xs">
+            By creating an account you agree to the{" "}
+            <Link href="/terms" className="text-cyan-200/90 hover:text-white">
+              Terms
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy" className="text-cyan-200/90 hover:text-white">
+              Privacy policy
+            </Link>
+            .
+          </p>
+
           <button
             type="submit"
             disabled={isLoading}
-            className="flex w-full items-center justify-center rounded-lg bg-black px-4 py-3 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-70"
+            className="btn btn-primary w-full py-3 text-sm font-semibold tracking-wide disabled:opacity-60"
           >
-            {isLoading ? "Creating account..." : "Sign up"}
+            {isLoading ? "Creating account…" : "Sign up"}
           </button>
         </form>
 
-        <p className="mt-8 text-center text-sm text-gray-600">
+        <p className="auth-links mt-6 text-sm">
           Already have an account?{" "}
-          <Link
-            href="/login"
-            className="font-medium text-black underline-offset-4 hover:underline"
-          >
+          <Link href="/login" className="font-medium text-cyan-200/90 hover:text-white">
             Log in
           </Link>
         </p>
       </div>
-    </main>
+    </AuthPageChrome>
   );
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { AuthPageChrome } from "@/components/shells/AuthPageChrome";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -54,51 +55,53 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-6 py-10">
-      <div className="glass w-full max-w-md p-10 space-y-7 rounded-2xl">
-
+    <AuthPageChrome alternate={{ href: "/register", label: "Create account" }}>
+      <div className="auth-shell rounded-[var(--si-radius-lg)]">
         <div className="text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 border border-white/20 text-xl font-semibold shadow-md">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-white/15 bg-gradient-to-br from-white/[0.12] to-white/[0.03] font-display text-lg font-semibold text-white shadow-lg">
             S
           </div>
-          <p className="mt-4 text-sm text-gray-400">StudyIntel</p>
-          <h1 className="mt-2 text-3xl sm:text-4xl font-semibold tracking-tight">
+          <p className="auth-eyebrow mt-5">StudyIntel</p>
+          <h1 className="auth-title font-display text-3xl text-white sm:text-4xl">
             Welcome back
           </h1>
-          <p className="mt-2 text-sm text-gray-400">
+          <p className="auth-subtitle">
             Log in to continue to your dashboard.
           </p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-6">
-
-          <div>
-            <label className="text-sm text-gray-300">Email</label>
+        <form onSubmit={handleLogin} className="mt-8 space-y-6">
+          <div className="teacher-field">
+            <label htmlFor="login-email">Email</label>
             <input
+              id="login-email"
               type="email"
               required
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="input w-full mt-2 px-4 py-2"
+              className="form-control w-full"
               placeholder="you@example.com"
             />
           </div>
 
-          <div>
-            <label className="text-sm text-gray-300">Password</label>
+          <div className="teacher-field">
+            <label htmlFor="login-password">Password</label>
             <input
+              id="login-password"
               type="password"
               required
               minLength={6}
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="input w-full mt-2 px-4 py-2"
+              className="form-control w-full"
               placeholder="Enter your password"
             />
           </div>
 
           {error && (
-            <p className="text-sm text-red-400 border border-red-500/30 bg-red-500/10 p-3 rounded-lg">
+            <p className="rounded-xl border border-red-400/35 bg-red-500/10 p-3 text-sm text-red-200">
               {error}
             </p>
           )}
@@ -106,24 +109,19 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="btn btn-primary w-full py-2 text-sm tracking-wide"
+            className="btn btn-primary w-full py-3 text-sm tracking-wide disabled:opacity-60"
           >
-            {isLoading ? "Logging in..." : "Log in"}
+            {isLoading ? "Logging in…" : "Log in"}
           </button>
-
         </form>
 
-        <p className="text-center text-sm text-gray-400 mt-2">
+        <p className="auth-links mt-6 text-sm">
           No account?{" "}
-          <Link
-            href="/register"
-            className="text-white underline hover:opacity-80"
-          >
+          <Link href="/register" className="font-medium text-cyan-200/90 hover:text-white">
             Create one
           </Link>
         </p>
-
       </div>
-    </main>
+    </AuthPageChrome>
   );
 }
